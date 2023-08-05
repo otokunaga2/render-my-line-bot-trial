@@ -37,6 +37,33 @@ app.get('/remind_medicine', (req, res) =>{
         .catch(e => res.status(500).send(e));
 });
 
+app.get('/confirm_medicine', (req, res) => {
+    // 薬を飲んだか確認
+    const messages = [{
+        type: 'template',
+        altText: '薬の服薬の確認です',
+        template: {
+          type: 'confirm',
+          text: '薬を飲みましたか？',
+          actions: [
+            {
+              type: 'message',
+              label: 'はい',
+              text: 'はい',
+            },
+            {
+              type: 'message',
+              label: 'いいえ',
+              text: 'いいえ'
+            }
+          ]
+        }
+    }];
+    client.broadcast(messages)
+        .then(data => res.json(data))
+        .catch(e => res.status(500).send(e));
+});
+
 async function handleEvent(event) {
 	if (event.type !== 'message' || event.message.type !== 'text') {
 		return Promise.resolve(null);
