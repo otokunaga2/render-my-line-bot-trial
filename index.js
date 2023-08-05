@@ -13,7 +13,7 @@ const app = express();
 
 app.get('/', (req, res) => res.send('Hello  BOT!(GET)')); //ブラウザ確認用(無くても問題ない)
 app.post('/webhook', line.middleware(config), (req, res) => {
-	console.log(`webhookメッセージを受信 ${req.body.events}`);
+	console.log(`webhookメッセージを受信 ${JSON.stringify(req.body.events)}`);
 	if (req.body.events == []){
 		console.log('webhookの確認通知メッセージを受信')
 		return Promise.resolve(null);
