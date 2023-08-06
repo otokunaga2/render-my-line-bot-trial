@@ -96,7 +96,7 @@ async function handleEvent(event) {
         const currentTime = date.toFormat('YYYY-MM-DD HH24:MI:SS');
 
         const query = {
-            text: 'SELECT * FROM line_reply WHERE type=$1 AND user_id=$2 AND created_at>=$3',
+            text: 'SELECT * FROM line_reply WHERE type=$1 AND user_id=$2 AND created_at>=$3 order by created_at DESC',
             values: ['medicine_confirm', event.source.userId, currentTime]
         };
         pgClient
