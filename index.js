@@ -43,9 +43,11 @@ pgClient.connect();
 
 app.get('/remind_medicine', (req, res) =>{
     // テキストで通知を全員に一斉通知
+    const date = new Date();
+    const dateStr = date.toFormat('M月D日');
     const messages = [{
         type: 'text',
-        text: 'お昼の薬の時間です。\nいつもの場所に置いてあるお薬を飲んでください。'
+        text: `${dateStr}のお昼の薬の時間です。\nいつもの場所に置いてあるお薬を飲んでください。`
     }];
     lineClient.broadcast(messages)
         .then(data => res.json(data))
