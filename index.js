@@ -1,5 +1,10 @@
 'use strict';
 
+require('date-utils');
+require('dotenv').config();
+
+const querystring = require('querystring')
+const { Client } = require("pg");
 const express = require('express');
 const line = require('@line/bot-sdk');
 const PORT = process.env.PORT || 3000;
@@ -8,6 +13,14 @@ const config = {
 	channelSecret: process.env.CHANNEL_SECRET,
 	channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
 };
+
+const pgConfig = {
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_DATABASE,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+}
 
 const app = express();
 
@@ -24,7 +37,9 @@ app.post('/webhook', line.middleware(config), (req, res) => {
 		.then((result) => res.json(result));
 });
 
-const client = new line.Client(config);
+const lineClient = new line.Client(config);
+const pgClient = new Client(pgConfig);
+pgClient.connect();
 
 app.get('/remind_medicine', (req, res) =>{
     // テキストで通知を全員に一斉通知
@@ -32,7 +47,7 @@ app.get('/remind_medicine', (req, res) =>{
         type: 'text',
         text: 'お昼の薬の時間です。\nいつもの場所に置いてあるお薬を飲んでください。'
     }];
-    client.broadcast(messages)
+    lineClient.broadcast(messages)
         .then(data => res.json(data))
         .catch(e => res.status(500).send(e));
 });
@@ -47,32 +62,58 @@ app.get('/confirm_medicine', (req, res) => {
           text: '薬を飲みましたか？',
           actions: [
             {
-              type: 'message',
-              label: 'はい',
-              text: 'はい',
+                type: 'postback',
+                label: 'はい',
+                data: 'type=medicine_confirm&answer=はい',
+                displayText: 'はい',
             },
             {
-              type: 'message',
-              label: 'いいえ',
-              text: 'いいえ'
+                type: 'postback',
+                label: 'いいえ',
+                data: 'type=medicine_confirm&answer=いいえ',
+                displayText: 'いいえ',
             }
           ]
         }
     }];
-    client.broadcast(messages)
+    lineClient.broadcast(messages)
         .then(data => res.json(data))
         .catch(e => res.status(500).send(e));
 });
 
 async function handleEvent(event) {
+    if (event.type == 'postback') {
+        insertReply(event);
+    }
+
 	if (event.type !== 'message' || event.message.type !== 'text') {
 		return Promise.resolve(null);
 	}
 
-	return client.replyMessage(event.replyToken, {
+	return lineClient.replyMessage(event.replyToken, {
 		type: 'text',
 		text: event.message.text //実際に返信の言葉を入れる箇所
 	});
+}
+
+function insertReply(event) {
+    const date = new Date();
+    const currentTime = date.toFormat('YYYY-MM-DD HH24:MI:SS');
+
+    const params = querystring.parse(event.postback.data);
+
+    const query = {
+        text: `INSERT INTO line_reply (type, answer, user_id, created_at) VALUES ($1, $2, $3, $4)`,
+        values: [params.type, params.answer, event.source.userId, currentTime],
+    };
+    pgClient
+        .query(query)
+        .then((res) => {
+            console.log(res);
+        })
+        .catch((e) => {
+            console.error(e.stack);
+        });
 }
 
 app.listen(PORT);
