@@ -90,10 +90,37 @@ async function handleEvent(event) {
 		return Promise.resolve(null);
 	}
 
-	return lineClient.replyMessage(event.replyToken, {
-		type: 'text',
-		text: event.message.text //実際に返信の言葉を入れる箇所
-	});
+    if (event.message.text === '薬') {
+        const date = new Date();
+        date.setHours(date.getHours() - 3);
+        const currentTime = date.toFormat('YYYY-MM-DD HH24:MI:SS');
+
+        const query = {
+            text: 'SELECT * FROM line_reply WHERE type=$1 AND user_id=$2 AND created_at>=$3',
+            values: ['medicine_confirm', event.source.userId, currentTime]
+        };
+        pgClient
+            .query(query)
+            .then((res) => {
+                let text = '薬はまだ飲んでません。';
+                if (res.rows.length > 0 && res.rows[0].answer === 'はい') {
+                    text = '薬は飲みました。';
+                }
+                return lineClient.replyMessage(event.replyToken, {
+                    type: 'text',
+                    text: text
+                })
+            })
+            .catch((e) => {
+                console.error(e.stack);
+                return Promise.resolve(null);
+            });
+    } else {
+        return lineClient.replyMessage(event.replyToken, {
+            type: 'text',
+            text: event.message.text //実際に返信の言葉を入れる箇所
+        });
+    }	
 }
 
 function insertReply(event) {
