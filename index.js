@@ -90,7 +90,7 @@ async function handleEvent(event) {
 		return Promise.resolve(null);
 	}
 
-    if (event.message.text === '薬') {
+    if (event.message.text.indexOf("薬") !== -1 ) {
         const date = new Date();
         date.setHours(date.getHours() - 3);
         const currentTime = date.toFormat('YYYY-MM-DD HH24:MI:SS');
